@@ -190,7 +190,7 @@ window.addEventListener('unhandledrejection', (e)=>{
 
 <header>
   <div class="header-inner">
-    <div class="brand"><span class="dot"></span>I-Proexpo <small>نظام إدارة دخول الزوار عبر QR</small></div>
+    <div class="brand"><img src="logo.png" alt="I-Proexpo" style="height:38px;width:auto;"> <small>نظام إدارة دخول الزوار عبر QR</small></div>
     <nav>
       <button class="tab-btn active" data-view="register">التسجيل</button>
       <button class="tab-btn" data-view="gate">بوابة الدخول</button>
@@ -263,6 +263,14 @@ window.addEventListener('unhandledrejection', (e)=>{
             <button class="btn outline sm" id="downloadQrBtn" style="flex:1;">تحميل الرمز</button>
             <button class="btn outline sm" id="printTicketBtn" style="flex:1;">طباعة</button>
           </div>
+
+          <div style="margin-top:20px;border-top:1px solid #eee;padding-top:16px;text-align:center;">
+            <h3 style="font-size:15px;color:var(--navy);margin:0 0 12px;">بطاقة الزائر الرسمية</h3>
+            <img id="badgePreview" style="max-width:220px;width:100%;border-radius:10px;box-shadow:var(--shadow);display:none;" alt="بطاقة الزائر">
+            <div id="badgeLoading" style="font-size:12px;color:var(--muted);padding:20px;">جارٍ تجهيز البطاقة...</div>
+            <button class="btn gold sm" id="downloadBadgeBtn" style="width:100%;margin-top:12px;">تحميل البطاقة الرسمية</button>
+          </div>
+
           <div class="notice">
             ملاحظة: إرسال الرمز تلقائيًا إلى البريد الإلكتروني يتطلب خدمة بريد فعلية على الخادم (مثل SendGrid) —
             هذا النموذج التجريبي يعرض الرمز للتحميل والطباعة مباشرة بدلاً من ذلك.
@@ -375,6 +383,11 @@ window.addEventListener('unhandledrejection', (e)=>{
 
 <script>
 const PREFIX = 'IPROEXPO-';
+const BADGE_TEMPLATES = {
+  'زائر': 'badge-zair.jpg'
+  // أضف هنا لاحقًا: 'منظم': 'badge-monazem.jpg', 'مشارك': 'badge-mosharek.jpg', 'أمن': 'badge-amn.jpg'
+};
+
 const VISITORS_KEY = 'iproexpo_visitors_v1';   // local backup of records registered on THIS device
 const ENTRIES_KEY  = 'iproexpo_entries_v1';    // local backup of gate check-ins recorded on THIS device
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzxUjiaLkbzHZJIq1WGaSY_jR9kQnrRgciqIo-CVkpQOjzvMkkMdNpCy1OnGmcASkYj/exec';
@@ -596,6 +609,85 @@ function showTicket(data){
     w.document.close();
     w.print();
   };
+
+  // ---- official badge (template + composited QR) ----
+  const badgePreview = document.getElementById('badgePreview');
+  const badgeLoading = document.getElementById('badgeLoading');
+  badgePreview.style.display = 'none';
+  badgeLoading.style.display = 'block';
+
+  if(!BADGE_TEMPLATES[data.type]){
+    badgeLoading.textContent = 'تصميم بطاقة فئة "'+(data.type||'')+'" غير متوفر بعد — استخدم رمز QR أعلاه.';
+    document.getElementById('downloadBadgeBtn').style.display = 'none';
+  } else {
+    document.getElementById('downloadBadgeBtn').style.display = 'block';
+    badgeLoading.textContent = 'جارٍ تجهيز البطاقة...';
+    renderBadgeCanvas(data, (canvas)=>{
+      const url = canvas.toDataURL('image/png');
+      badgePreview.src = url;
+      badgePreview.style.display = 'block';
+      badgeLoading.style.display = 'none';
+      document.getElementById('downloadBadgeBtn').onclick = ()=>{
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'بطاقة-'+data.name+'-'+data.id+'.png';
+        a.click();
+      };
+    }, (err)=>{
+      badgeLoading.textContent = 'تعذّر تجهيز البطاقة: ' + err.message;
+      debugLog('badge render error: ' + err.message);
+    });
+  }
+}
+
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+// Composites the visitor's QR code onto the official badge template for their category.
+// QR box position is expressed as a fraction of the template's dimensions (resolution-independent).
+const QR_BOX_FRAC = { x:0.3077, y:0.535, w:0.3846, h:0.273 };
+
+function renderBadgeCanvas(data, onDone, onError){
+  try{
+    const templateFile = BADGE_TEMPLATES[data.type];
+    if(!templateFile){ onError(new Error('لا يوجد تصميم بطاقة لفئة "'+(data.type||'')+'" بعد')); return; }
+    const tpl = new Image();
+    tpl.onload = ()=>{
+      try{
+        const W = tpl.naturalWidth, H = tpl.naturalHeight;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(tpl, 0, 0, W, H);
+
+        const bx = QR_BOX_FRAC.x*W, by = QR_BOX_FRAC.y*H, bw = QR_BOX_FRAC.w*W, bh = QR_BOX_FRAC.h*H;
+        const pad = 0.018*W;
+        ctx.fillStyle = '#ffffff';
+        roundRectPath(ctx, bx-pad, by-pad, bw+pad*2, bh+pad*2, 0.02*W);
+        ctx.fill();
+
+        const tmp = document.createElement('div');
+        if(typeof QRCode !== 'function') throw new Error('QRCode library not loaded');
+        new QRCode(tmp, { text: data.id, width: Math.round(bw), height: Math.round(bh), colorDark:'#0B1F3A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
+
+        const finish = ()=>{
+          const qrEl = tmp.querySelector('canvas') || tmp.querySelector('img');
+          ctx.drawImage(qrEl, bx, by, bw, bh);
+          onDone(c);
+        };
+        setTimeout(finish, 60); // qrcodejs needs a tick to render into the DOM
+      }catch(err){ onError(err); }
+    };
+    tpl.onerror = ()=> onError(new Error('تعذّر تحميل صورة القالب: ' + templateFile));
+    tpl.src = templateFile;
+  }catch(err){ onError(err); }
 }
 
 // ---------- GATE SCANNER ----------
