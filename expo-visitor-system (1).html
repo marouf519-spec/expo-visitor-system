@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة دخول الزوار | I-Proexpo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+  :root{
+    --navy:#0B1F3A;
+    --navy-2:#14335C;
+    --navy-soft:#1E4372;
+    --gold:#C9A227;
+    --gold-light:#E8CD6C;
+    --bg:#F5F6FA;
+    --card:#FFFFFF;
+    --ink:#17202E;
+    --muted:#6B7280;
+    --ok:#1E7F4C;
+    --ok-bg:#E7F5EC;
+    --err:#B3261E;
+    --err-bg:#FBEAE9;
+    --warn:#9A6B00;
+    --warn-bg:#FDF3DC;
+    --radius:14px;
+    --shadow:0 8px 24px rgba(11,31,58,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;}
+  h1,h2,h3,.brand{font-family:'Cairo',sans-serif;}
+
+  header{
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));
+    color:#fff;
+    padding:0 20px;
+    position:sticky;top:0;z-index:50;
+    box-shadow:var(--shadow);
+  }
+  .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 0;}
+  .brand{font-weight:800;font-size:20px;display:flex;align-items:center;gap:10px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);}
+  .brand small{display:block;font-family:'Tajawal';font-weight:400;font-size:12px;color:#C9D3E0;}
+
+  nav{display:flex;gap:4px;background:rgba(255,255,255,0.08);padding:4px;border-radius:12px;}
+  nav button{
+    background:transparent;border:none;color:#D9E0EA;padding:9px 16px;border-radius:9px;
+    font-family:'Tajawal';font-weight:700;font-size:14px;cursor:pointer;transition:.2s;
+  }
+  nav button.active{background:var(--gold);color:var(--navy);}
+  nav button:not(.active):hover{background:rgba(255,255,255,0.12);color:#fff;}
+
+  main{max-width:1100px;margin:0 auto;padding:26px 20px 60px;}
+  .view{display:none;animation:fade .35s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;}
+  .card h2{margin:0 0 4px;font-size:19px;color:var(--navy);}
+  .subtitle{color:var(--muted);font-size:13.5px;margin:0 0 20px;}
+
+  label{display:block;font-size:13.5px;font-weight:700;color:var(--navy-2);margin:14px 0 6px;}
+  input,textarea,select{
+    width:100%;padding:11px 13px;border:1.5px solid #E1E5EC;border-radius:9px;
+    font-family:'Tajawal';font-size:14.5px;background:#FBFBFD;transition:.15s;
+  }
+  input:focus,textarea:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,162,39,0.15);}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--navy);color:#fff;border:none;padding:12px 20px;border-radius:9px;
+    font-family:'Tajawal';font-weight:700;font-size:14.5px;cursor:pointer;transition:.15s;width:100%;margin-top:20px;
+  }
+  .btn:hover{background:var(--navy-2);}
+  .btn.gold{background:var(--gold);color:var(--navy);}
+  .btn.gold:hover{background:var(--gold-light);}
+  .btn.outline{background:transparent;color:var(--navy);border:1.5px solid var(--navy);}
+  .btn.outline:hover{background:var(--navy);color:#fff;}
+  .btn.sm{width:auto;padding:9px 14px;font-size:13px;margin-top:0;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .row-btns{display:flex;gap:10px;}
+  .row-btns .btn{margin-top:0;}
+
+  /* ---- Ticket / badge (signature element) ---- */
+  .ticket-wrap{display:none;}
+  .ticket-wrap.show{display:block;animation:fade .4s ease;}
+  .ticket{
+    background:#fff;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);
+    display:flex;position:relative;border:1.5px solid #EDEEF3;
+  }
+  .ticket-main{flex:1;background:var(--navy);color:#fff;padding:26px 22px;position:relative;overflow:hidden;}
+  .ticket-main::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 100% 0%, rgba(201,162,39,0.25), transparent 55%);
+  }
+  .ticket-main .eyebrow{color:var(--gold-light);font-size:11px;font-weight:700;letter-spacing:1px;position:relative;}
+  .ticket-main h3{font-size:22px;margin:6px 0 2px;position:relative;}
+  .ticket-main .vid{font-size:12.5px;color:#B9C6DA;font-family:monospace;position:relative;}
+  .ticket-main .meta{margin-top:18px;position:relative;font-size:13px;color:#DCE4EF;line-height:1.9;}
+  .perf{
+    width:0;border-right:2px dashed #D9DBE3;position:relative;
+  }
+  .perf::before,.perf::after{
+    content:"";position:absolute;width:22px;height:22px;background:var(--bg);border-radius:50%;
+    right:-12px;
+  }
+  .perf::before{top:-11px;} .perf::after{bottom:-11px;}
+  .ticket-qr{width:220px;flex-shrink:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;}
+  .ticket-qr #qrcode-canvas-holder{padding:6px;background:#fff;border:1px solid #eee;border-radius:8px;}
+  .ticket-qr .hint{font-size:11px;color:var(--muted);margin-top:10px;text-align:center;}
+  @media(max-width:560px){.ticket{flex-direction:column;} .perf{border-right:none;border-bottom:2px dashed #D9DBE3;width:auto;height:0;}
+    .perf::before,.perf::after{top:-11px;bottom:auto;} .perf::before{right:auto;left:14px;} .perf::after{right:14px;left:auto;}}
+
+  .notice{font-size:12.5px;color:var(--muted);background:#F2F3F7;border-radius:9px;padding:10px 12px;margin-top:16px;line-height:1.7;}
+
+  /* ---- Gate view ---- */
+  .scan-box{background:var(--navy);border-radius:16px;padding:20px;text-align:center;position:relative;overflow:hidden;}
+  #video{width:100%;max-width:380px;border-radius:12px;background:#000;}
+  .scan-frame{position:relative;display:inline-block;}
+  .scan-line{position:absolute;left:8%;right:8%;height:2px;background:var(--gold);box-shadow:0 0 8px var(--gold);top:0;animation:scan 2.1s linear infinite;}
+  @keyframes scan{0%{top:6%;}50%{top:92%;}100%{top:6%;}}
+  .gate-result{margin-top:18px;border-radius:12px;padding:18px;font-weight:700;display:none;animation:pop .3s ease;}
+  .gate-result.show{display:block;}
+  @keyframes pop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .gate-result.ok{background:var(--ok-bg);color:var(--ok);}
+  .gate-result.err{background:var(--err-bg);color:var(--err);}
+  .gate-result.warn{background:var(--warn-bg);color:var(--warn);}
+  .gate-result .name{font-size:19px;margin-bottom:4px;}
+  .gate-result .sub{font-weight:400;font-size:13px;opacity:.85;}
+  .manual-check{display:flex;gap:8px;margin-top:16px;}
+  .manual-check input{flex:1;}
+
+  /* ---- Admin ---- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--card);border-radius:12px;padding:16px;box-shadow:var(--shadow);text-align:center;}
+  .stat .num{font-family:'Cairo';font-size:26px;font-weight:800;color:var(--navy);}
+  .stat .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
+  .stat.gold .num{color:var(--gold);}
+
+  .admin-toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+  .admin-toolbar input{flex:1;min-width:200px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{background:var(--navy);color:#fff;padding:10px 12px;text-align:right;font-weight:700;position:sticky;top:0;}
+  thead th:first-child{border-radius:9px 0 0 0;} thead th:last-child{border-radius:0 9px 0 0;}
+  tbody td{padding:10px 12px;border-bottom:1px solid #EEF0F4;}
+  tbody tr:hover{background:#FAFAFC;}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;}
+  .badge.in{background:var(--ok-bg);color:var(--ok);}
+  .badge.out{background:#EEEFF3;color:var(--muted);}
+  .table-wrap{overflow:auto;max-height:520px;border-radius:12px;}
+  .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px;}
+
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .field-err{color:var(--err);font-size:12px;margin-top:4px;display:none;}
+</style>
+</head>
+<body>
+
+<div id="cloudBanner" style="display:none;background:#E7F5EC;color:#1E7F4C;text-align:center;padding:8px 12px;font-size:13px;font-weight:700;">
+  ✅ البيانات محفوظة محليًا على هذا الجهاز — تعمل بدون إنترنت وتبقى بعد إغلاق الصفحة
+</div>
+
+<div id="debugPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow:auto;background:#1a1a1a;color:#ff8a80;font-family:monospace;font-size:12px;padding:10px 12px;z-index:999;direction:ltr;text-align:left;white-space:pre-wrap;"></div>
+<script>
+function debugLog(msg){
+  if(!DEBUG_MODE) return;
+  const p = document.getElementById('debugPanel');
+  p.style.display = 'block';
+  p.textContent = new Date().toLocaleTimeString() + '  ' + msg + '\n\n' + p.textContent;
+}
+const DEBUG_MODE = (new URLSearchParams(location.search).get('debug') === '1') || localStorage.getItem('iproexpo_debug') === '1';
+if(new URLSearchParams(location.search).get('debug') === '1'){ localStorage.setItem('iproexpo_debug','1'); }
+if(new URLSearchParams(location.search).get('debug') === '0'){ localStorage.removeItem('iproexpo_debug'); }
+window.addEventListener('error', (e)=>{
+  debugLog('ERROR: ' + (e.message||'unknown') + '\nfile: ' + (e.filename||'?') + ':' + (e.lineno||'?') + ':' + (e.colno||'?') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  debugLog('PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+</script>
+
+<header>
+  <div class="header-inner">
+    <div class="brand"><span class="dot"></span>I-Proexpo <small>نظام إدارة دخول الزوار عبر QR</small></div>
+    <nav>
+      <button class="tab-btn active" data-view="register">التسجيل</button>
+      <button class="tab-btn" data-view="gate">بوابة الدخول</button>
+      <button class="tab-btn" data-view="admin">لوحة التحكم</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ REGISTRATION VIEW ============ -->
+  <section id="view-register" class="view active">
+    <div class="grid2">
+      <div class="card">
+        <h2>تسجيل بيانات الزائر</h2>
+        <p class="subtitle">هذه الصفحة هي ما يفتحه الزائر بعد مسح رمز QR الثابت عند مدخل المعرض.</p>
+
+        <form id="regForm">
+          <label>الاسم *</label>
+          <input type="text" id="f_name" required>
+
+          <label>الكنية / اسم العائلة *</label>
+          <input type="text" id="f_kunya" required>
+
+          <label>البريد الإلكتروني *</label>
+          <input type="email" id="f_email" required>
+          <div class="field-err" id="err_email">صيغة البريد الإلكتروني غير صحيحة</div>
+
+          <label>رقم الهاتف *</label>
+          <input type="tel" id="f_phone" required placeholder="+90 5xx xxx xx xx">
+
+          <label>العنوان *</label>
+          <textarea id="f_address" rows="2" required></textarea>
+
+          <label>نوع الزائر *</label>
+          <select id="f_type" required>
+            <option value="زائر" selected>زائر</option>
+            <option value="منظم">منظم</option>
+            <option value="مشارك">مشارك</option>
+            <option value="أمن">أمن</option>
+          </select>
+
+          <button class="btn gold" type="submit" id="submitBtn">إرسال والحصول على رمز الدخول</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>رمز الدخول الخاص بك</h2>
+        <p class="subtitle" id="ticketSubtitle">سيظهر رمز QR الخاص بك هنا بعد إتمام التسجيل.</p>
+
+        <div class="ticket-wrap" id="ticketWrap">
+          <div class="ticket">
+            <div class="ticket-main">
+              <div class="eyebrow" id="t_type">بطاقة دخول المعرض</div>
+              <h3 id="t_name">—</h3>
+              <div class="vid" id="t_id">—</div>
+              <div class="meta">
+                <div id="t_email"></div>
+                <div id="t_phone"></div>
+              </div>
+            </div>
+            <div class="perf"></div>
+            <div class="ticket-qr">
+              <div id="qrcode-canvas-holder"></div>
+              <div id="t_code" style="font-family:'Cairo';font-size:26px;font-weight:800;color:var(--navy);letter-spacing:4px;margin-top:8px;">----</div>
+              <div class="hint">اعرض هذا الرمز عند بوابة الدخول</div>
+            </div>
+          </div>
+          <div class="row-btns" style="margin-top:14px;">
+            <button class="btn outline sm" id="downloadQrBtn" style="flex:1;">تحميل الرمز</button>
+            <button class="btn outline sm" id="printTicketBtn" style="flex:1;">طباعة</button>
+          </div>
+          <div class="notice">
+            ملاحظة: إرسال الرمز تلقائيًا إلى البريد الإلكتروني يتطلب خدمة بريد فعلية على الخادم (مثل SendGrid) —
+            هذا النموذج التجريبي يعرض الرمز للتحميل والطباعة مباشرة بدلاً من ذلك.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GATE VIEW ============ -->
+  <section id="view-gate" class="view">
+    <div class="grid2">
+      <div class="card">
+        <h2>ماسح بوابة الدخول</h2>
+        <p class="subtitle">شغّل الكاميرا لمسح رمز QR الخاص بالزائر عند البوابة.</p>
+
+        <div class="scan-box">
+          <div class="scan-frame">
+            <video id="video" playsinline muted></video>
+            <div class="scan-line" id="scanLine" style="display:none;"></div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn gold" id="camBtn">تشغيل الكاميرا المباشرة</button>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;text-align:center;">
+          <label class="btn outline" style="cursor:pointer;display:inline-flex;">
+            📷 التقط صورة للرمز
+            <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
+          </label>
+          <label class="btn outline" style="cursor:pointer;display:inline-flex;margin-top:8px;">
+            🖼️ اختر صورة QR محفوظة من المعرض
+            <input type="file" accept="image/*" id="galleryInput" style="display:none;">
+          </label>
+          <div class="notice" style="margin-top:10px;">
+            الأدق: اطلب من الزائر تحميل رمز QR (زر "تحميل الرمز") وإرساله لك كملف صورة عبر واتساب، ثم اخترها من المعرض —
+            هذا أوضح بكثير من تصوير شاشة هاتفه مباشرة (الوهج والانعكاس يصعّبان القراءة).
+          </div>
+        </div>
+
+        <div class="manual-check">
+          <input type="tel" inputmode="numeric" maxlength="4" id="manualCode" placeholder="أو أدخل الرمز المكوّن من ٤ أرقام">
+          <button class="btn sm outline" id="manualBtn">تحقق</button>
+        </div>
+
+        <div class="gate-result" id="gateResult">
+          <div class="name" id="gr_name"></div>
+          <div class="sub" id="gr_sub"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>إعدادات البوابة</h2>
+        <p class="subtitle">التحقق من صلاحية الرمز عند كل عملية مسح.</p>
+        <label style="margin-top:0;display:flex;align-items:center;gap:8px;font-weight:500;">
+          <input type="checkbox" id="oneTimeUse" checked style="width:auto;">
+          استخدام لمرة واحدة فقط (رفض الرمز إذا استُخدم سابقًا)
+        </label>
+        <div class="notice">
+          هذه النسخة تعمل بالكامل على هذا الجهاز (تسجيل + مسح + لوحة تحكم من نفس المتصفح) ولا تحتاج إنترنت بعد فتح الصفحة.
+          صدّر نسخة CSV احتياطية بشكل دوري من تبويب "لوحة التحكم" كإجراء احترازي أثناء المعرض.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <section id="view-admin" class="view">
+    <div class="stats">
+      <div class="stat"><div class="num" id="s_total">0</div><div class="lbl">إجمالي الزوار المسجلين</div></div>
+      <div class="stat gold"><div class="num" id="s_in">0</div><div class="lbl">دخلوا فعليًا</div></div>
+      <div class="stat"><div class="num" id="s_today">0</div><div class="lbl">تسجيلات اليوم</div></div>
+      <div class="stat"><div class="num" id="s_rate">0%</div><div class="lbl">نسبة الحضور</div></div>
+    </div>
+
+    <div class="card">
+      <h2>قائمة الزوار</h2>
+      <p class="subtitle">بحث، متابعة الدخول، وتصدير البيانات.</p>
+
+      <div class="admin-toolbar">
+        <input type="text" id="searchBox" placeholder="ابحث بالاسم، البريد، أو الهاتف...">
+        <button class="btn outline sm" id="refreshBtn">تحديث</button>
+        <button class="btn gold sm" id="exportBtn">تصدير CSV</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th><th>الكنية</th><th>النوع</th><th>البريد</th><th>الهاتف</th>
+              <th>وقت التسجيل</th><th>الحالة</th><th>وقت الدخول</th>
+            </tr>
+          </thead>
+          <tbody id="visitorsBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState" style="display:none;">لا يوجد زوار مسجلون بعد</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const PREFIX = 'IPROEXPO-';
+const VISITORS_KEY = 'iproexpo_visitors_v1';   // local backup of records registered on THIS device
+const ENTRIES_KEY  = 'iproexpo_entries_v1';    // local backup of gate check-ins recorded on THIS device
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzxUjiaLkbzHZJIq1WGaSY_jR9kQnrRgciqIo-CVkpQOjzvMkkMdNpCy1OnGmcASkYj/exec';
+
+// ---------- local storage (same-device backup only) ----------
+function readMap(key){
+  try{ return JSON.parse(localStorage.getItem(key) || '{}'); }
+  catch(e){ return {}; }
+}
+function writeMap(key, obj){
+  try{ localStorage.setItem(key, JSON.stringify(obj)); return true; }
+  catch(e){ console.error('storage write failed', e); return false; }
+}
+
+// ---------- Google Sheets sync via JSONP (avoids Apps Script CORS issues) ----------
+function jsonp(url, params){
+  return new Promise((resolve, reject)=>{
+    const cbName = 'iproexpo_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let timeoutId;
+    function cleanup(){
+      clearTimeout(timeoutId);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = (data)=>{ cleanup(); resolve(data); };
+    script.onerror = ()=>{ cleanup(); reject(new Error('JSONP request failed (network or blocked)')); };
+    timeoutId = setTimeout(()=>{ cleanup(); reject(new Error('JSONP timeout')); }, 12000);
+    const qs = new URLSearchParams({...params, callback: cbName}).toString();
+    script.src = url + (url.includes('?') ? '&' : '?') + qs;
+    document.body.appendChild(script);
+  });
+}
+
+async function sheetGet(){
+  return jsonp(SHEET_URL, { action: 'list' });
+}
+async function sheetPost(payload){
+  if(payload.action === 'register'){
+    return jsonp(SHEET_URL, { action:'register', ...payload.visitor });
+  }
+  if(payload.action === 'checkin'){
+    return jsonp(SHEET_URL, { action:'checkin', id: payload.id });
+  }
+  throw new Error('unknown action');
+}
+
+function setBanner(state){
+  const b = document.getElementById('cloudBanner');
+  b.style.display = 'block';
+  if(state==='synced'){
+    b.style.background='#E7F5EC'; b.style.color='#1E7F4C';
+    b.textContent = '✅ متصل بـ Google Sheets — البيانات مشتركة بين كل الأجهزة الآن';
+  } else if(state==='checking'){
+    b.style.background='#FDF3DC'; b.style.color='#9A6B00';
+    b.textContent = '⏳ جارٍ الاتصال بـ Google Sheets...';
+  } else {
+    b.style.background='#FBEAE9'; b.style.color='#B3261E';
+    b.textContent = '⚠️ تعذر الاتصال بـ Google Sheets — يعمل النظام محليًا على هذا الجهاز مؤقتًا';
+  }
+}
+
+let sheetsOnline = false;
+
+async function testConnection(){
+  setBanner('checking');
+  try{
+    const data = await sheetGet();
+    debugLog('sheet connected, ' + (data.visitors||[]).length + ' visitors, ' + (data.entries||[]).length + ' entries');
+    if(data && data.ok){ sheetsOnline = true; setBanner('synced'); return; }
+    throw new Error('bad response: ' + JSON.stringify(data));
+  }catch(e){
+    debugLog('sheet connection failed: ' + e.message);
+    sheetsOnline = false;
+    setBanner('offline');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', testConnection);
+
+// ---------- navigation ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='admin') loadAdmin();
+    if(btn.dataset.view!=='gate') stopCamera();
+  });
+});
+
+// ---------- helpers ----------
+function genId(){
+  const visitors = readMap(VISITORS_KEY);
+  let id;
+  do{
+    id = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+  } while(visitors[id]);
+  return id;
+}
+function fmt(dt){
+  if(!dt) return '—';
+  const d = new Date(dt);
+  return d.toLocaleString('ar-EG',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+// ---------- REGISTRATION ----------
+const regForm = document.getElementById('regForm');
+regForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('f_email').value.trim();
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  document.getElementById('err_email').style.display = emailOk ? 'none' : 'block';
+  if(!emailOk) return;
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span> جارٍ الإنشاء...';
+
+  let id = genId();
+  let data = buildVisitorData(id);
+
+  try{
+    if(sheetsOnline){
+      let attempts = 0;
+      let registered = false;
+      while(attempts < 3 && !registered){
+        const resp = await sheetPost({ action:'register', visitor: data });
+        if(resp && resp.ok){
+          registered = true;
+        } else if(resp && resp.reason === 'duplicate'){
+          id = genId(); data = buildVisitorData(id); attempts++;
+        } else {
+          throw new Error('register failed: ' + JSON.stringify(resp));
+        }
+      }
+      if(!registered) throw new Error('could not find a free code, please try again');
+    }
+    const visitors = readMap(VISITORS_KEY);
+    visitors[id] = data;
+    writeMap(VISITORS_KEY, visitors);
+    showTicket(data);
+    regForm.reset();
+  }catch(err){
+    console.error(err);
+    // fall back to local-only registration so the visitor still gets a ticket
+    const visitors = readMap(VISITORS_KEY);
+    visitors[id] = data;
+    writeMap(VISITORS_KEY, visitors);
+    showTicket(data);
+    regForm.reset();
+    setBanner('offline'); sheetsOnline = false;
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'إرسال والحصول على رمز الدخول';
+  }
+});
+
+function buildVisitorData(id){
+  return {
+    id,
+    name: document.getElementById('f_name').value.trim(),
+    kunya: document.getElementById('f_kunya').value.trim(),
+    email: document.getElementById('f_email').value.trim(),
+    phone: document.getElementById('f_phone').value.trim(),
+    address: document.getElementById('f_address').value.trim(),
+    type: document.getElementById('f_type').value,
+    registeredAt: new Date().toISOString()
+  };
+}
+
+function showTicket(data){
+  document.getElementById('ticketSubtitle').style.display='none';
+  document.getElementById('t_name').textContent = data.name + ' ' + data.kunya;
+  document.getElementById('t_id').textContent = data.id;
+  document.getElementById('t_email').textContent = data.email;
+  document.getElementById('t_phone').textContent = data.phone;
+
+  const typeColors = { 'زائر':'#E8CD6C', 'منظم':'#7FB8E8', 'مشارك':'#8FE0A8', 'أمن':'#F08A8A' };
+  const typeEl = document.getElementById('t_type');
+  typeEl.textContent = (data.type || 'زائر') + ' — بطاقة دخول المعرض';
+  typeEl.style.color = typeColors[data.type] || '#E8CD6C';
+
+  document.getElementById('t_code').textContent = data.id;
+
+  const holder = document.getElementById('qrcode-canvas-holder');
+  holder.innerHTML = '';
+  try{
+    if(typeof QRCode !== 'function'){ throw new Error('QRCode library not loaded'); }
+    new QRCode(holder, {
+      text: data.id,
+      width: 220, height: 220,
+      colorDark: '#0B1F3A',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }catch(err){
+    debugLog('QR generation error: ' + err.message);
+    holder.innerHTML = '<div style="font-size:12px;color:var(--err);padding:20px;">تعذّر توليد الرمز، أعد تحميل الصفحة وحاول مجددًا.<br>('+err.message+')</div>';
+  }
+
+  document.getElementById('ticketWrap').classList.add('show');
+
+  document.getElementById('downloadQrBtn').onclick = ()=>{
+    const img = holder.querySelector('img') || holder.querySelector('canvas');
+    const src = img.tagName==='CANVAS' ? img.toDataURL('image/png') : img.src;
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = 'QR-'+data.id+'.png';
+    a.click();
+  };
+
+  document.getElementById('printTicketBtn').onclick = ()=>{
+    const w = window.open('', '_blank');
+    w.document.write('<html dir="rtl"><head><title>بطاقة دخول</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;">'+
+      '<h2>'+data.name+' '+data.kunya+'</h2><p>'+data.id+'</p>'+holder.innerHTML+
+      '<p>'+data.email+' | '+data.phone+'</p></body></html>');
+    w.document.close();
+    w.print();
+  };
+}
+
+// ---------- GATE SCANNER ----------
+let stream=null, scanning=false, videoEl=document.getElementById('video'), canvasEl=document.createElement('canvas');
+const camBtn=document.getElementById('camBtn');
+
+camBtn.addEventListener('click', async ()=>{
+  if(scanning){ stopCamera(); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    videoEl.srcObject = stream;
+    videoEl.setAttribute('playsinline', true);
+    await videoEl.play();
+    scanning = true;
+    camBtn.textContent = 'إيقاف الكاميرا';
+    document.getElementById('scanLine').style.display='block';
+    requestAnimationFrame(tick);
+  }catch(err){
+    console.error(err);
+    if(err.name === 'NotAllowedError'){
+      alert('تعذّر الوصول للكاميرا المباشرة داخل هذه المعاينة. استخدم زر "التقط صورة للرمز" تحته بدلاً منه — يفتح كاميرا الهاتف مباشرة.');
+    } else {
+      alert('تعذر تشغيل الكاميرا. استخدم "التقط صورة للرمز" أو الإدخال اليدوي.');
+    }
+  }
+});
+
+function stopCamera(){
+  scanning=false;
+  camBtn.textContent = 'تشغيل الكاميرا';
+  document.getElementById('scanLine').style.display='none';
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+}
+
+let cooldown=false;
+function tick(){
+  if(!scanning) return;
+  if(videoEl.readyState === videoEl.HAVE_ENOUGH_DATA && !cooldown){
+    canvasEl.width = videoEl.videoWidth;
+    canvasEl.height = videoEl.videoHeight;
+    const ctx = canvasEl.getContext('2d');
+    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    const imgData = ctx.getImageData(0,0,canvasEl.width,canvasEl.height);
+    const code = jsQR(imgData.data, imgData.width, imgData.height);
+    if(code && code.data){
+      handleScan(code.data);
+    }
+  }
+  if(scanning) requestAnimationFrame(tick);
+}
+
+document.getElementById('manualBtn').addEventListener('click', ()=>{
+  const val = document.getElementById('manualCode').value.trim();
+  if(val) handleScan(val);
+});
+
+function decodeImageFile(file){
+  try{
+    debugLog('image selected: ' + file.name + ' (' + file.size + ' bytes)');
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = (err)=> debugLog('FileReader error: ' + err);
+    reader.onload = (ev)=>{
+      img.onerror = ()=> debugLog('Image load error');
+      img.onload = ()=>{
+        try{
+          debugLog('image loaded: ' + img.width + 'x' + img.height);
+          if(typeof jsQR !== 'function'){ debugLog('jsQR library not loaded!'); alert('مكتبة قراءة الرمز لم تُحمّل بعد، أعد فتح الصفحة وحاول مجددًا.'); return; }
+
+          // try a few downscales — very large camera photos of a screen often
+          // fail to decode due to moire/glare; smaller versions decode more reliably
+          const attempts = [1600, 1000, 700, Math.max(img.width, img.height)];
+          let found = null;
+          for(const maxDim of attempts){
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const code = jsQR(imgData.data, imgData.width, imgData.height, {inversionAttempts:'attemptBoth'});
+            if(code && code.data){ found = code.data; debugLog('decoded at ' + w + 'x' + h); break; }
+          }
+
+          if(found){
+            handleScan(found);
+          } else {
+            debugLog('no QR found after multiple attempts');
+            alert('لم يتم العثور على رمز QR واضح في الصورة. جرّب: إضاءة أفضل، تقليل الوهج على الشاشة، أو استخدم "اختر صورة QR محفوظة من المعرض" بدل تصوير الشاشة.');
+          }
+        }catch(err){
+          debugLog('decode error: ' + err.message);
+          alert('حدث خطأ أثناء تحليل الصورة: ' + err.message);
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }catch(err){
+    debugLog('decodeImageFile error: ' + err.message);
+  }
+}
+
+document.getElementById('photoInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) decodeImageFile(file);
+  e.target.value = '';
+});
+
+document.getElementById('galleryInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) decodeImageFile(file);
+  e.target.value = '';
+});
+
+async function handleScan(raw){
+  if(cooldown) return;
+  cooldown = true;
+  try{
+  debugLog('scan raw: ' + String(raw).slice(0,80));
+  const oneTime = document.getElementById('oneTimeUse').checked;
+
+  const box = document.getElementById('gateResult');
+  const nameEl = document.getElementById('gr_name');
+  const subEl = document.getElementById('gr_sub');
+  box.classList.remove('ok','err','warn');
+
+  let id = String(raw).trim().replace(/\D/g,'').slice(-4);
+  if(id.length < 4) id = null;
+
+  if(!id){
+    box.classList.add('err'); nameEl.textContent='رمز غير صالح';
+    subEl.textContent='الرمز يجب أن يتكوّن من ٤ أرقام';
+  } else if(sheetsOnline){
+    try{
+      const resp = await sheetPost({ action:'checkin', id });
+      if(resp && resp.ok){
+        const entries = readMap(ENTRIES_KEY);
+        entries[id] = { name: resp.visitor.name, kunya: resp.visitor.kunya, registeredAt: resp.visitor.registeredAt, entryTime: resp.entryTime };
+        writeMap(ENTRIES_KEY, entries);
+        box.classList.add('ok'); nameEl.textContent='تم فتح الباب — مرحبًا '+resp.visitor.name;
+        subEl.textContent = 'وقت الدخول: '+fmt(resp.entryTime);
+      } else if(resp && resp.reason === 'already'){
+        box.classList.add('warn'); nameEl.textContent='تم استخدام هذا الرمز مسبقًا';
+        subEl.textContent = resp.entry.name+' '+resp.entry.kunya+' — دخل في '+fmt(resp.entry.entryTime);
+      } else {
+        box.classList.add('err'); nameEl.textContent='رمز غير صالح';
+        subEl.textContent='لا يوجد زائر مسجل بهذا الرمز';
+      }
+    }catch(err){
+      debugLog('sheet checkin failed, falling back to local: ' + err.message);
+      sheetsOnline = false; setBanner('offline');
+      handleScanLocal(id, oneTime, box, nameEl, subEl);
+    }
+  } else {
+    handleScanLocal(id, oneTime, box, nameEl, subEl);
+  }
+  box.classList.add('show');
+  document.getElementById('manualCode').value='';
+  setTimeout(()=>{ box.classList.remove('show'); cooldown=false; }, 2500);
+  }catch(err){
+    debugLog('handleScan fatal error: ' + err.message + '\n' + (err.stack||''));
+    cooldown = false;
+    alert('حدث خطأ أثناء التحقق من الرمز: ' + err.message);
+  }
+}
+
+function handleScanLocal(id, oneTime, box, nameEl, subEl){
+  const visitors = readMap(VISITORS_KEY);
+  const entries = readMap(ENTRIES_KEY);
+  const visitor = visitors[id];
+
+  if(!visitor){
+    box.classList.add('err'); nameEl.textContent='رمز غير صالح';
+    subEl.textContent='لا يوجد زائر مسجل بهذا الرمز على هذا الجهاز (وضع محلي)';
+  } else if(oneTime && entries[id]){
+    box.classList.add('warn'); nameEl.textContent='تم استخدام هذا الرمز مسبقًا';
+    subEl.textContent = visitor.name+' '+visitor.kunya+' — دخل في '+fmt(entries[id].entryTime);
+  } else {
+    const entryTime = new Date().toISOString();
+    entries[id] = { name: visitor.name, kunya: visitor.kunya, registeredAt: visitor.registeredAt, entryTime };
+    writeMap(ENTRIES_KEY, entries);
+    box.classList.add('ok'); nameEl.textContent='تم فتح الباب — مرحبًا '+visitor.name;
+    subEl.textContent = 'وقت الدخول: '+fmt(entryTime)+' (محلي)';
+  }
+}
+
+// ---------- ADMIN ----------
+let visitorsCache=[];
+
+async function loadAdmin(){
+  const body = document.getElementById('visitorsBody');
+  body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;"><span class="spinner" style="border-color:rgba(11,31,58,.2);border-top-color:var(--navy);"></span></td></tr>';
+
+  let visitors = {}, entries = {};
+
+  if(sheetsOnline){
+    try{
+      const data = await sheetGet();
+      (data.visitors||[]).forEach(v=>{ visitors[String(v.id)] = v; });
+      (data.entries||[]).forEach(e=>{ entries[String(e.id)] = e; });
+      setBanner('synced');
+    }catch(err){
+      debugLog('admin sheet fetch failed, using local: ' + err.message);
+      sheetsOnline = false; setBanner('offline');
+      visitors = readMap(VISITORS_KEY); entries = readMap(ENTRIES_KEY);
+    }
+  } else {
+    visitors = readMap(VISITORS_KEY); entries = readMap(ENTRIES_KEY);
+  }
+
+  const ids = new Set([...Object.keys(visitors), ...Object.keys(entries)]);
+
+  visitorsCache = [...ids].map(id=>{
+    const v = visitors[id];
+    const e = entries[id];
+    return {
+      id,
+      name: v ? v.name : (e ? e.name : '—'),
+      kunya: v ? v.kunya : (e ? e.kunya : ''),
+      email: v ? v.email : '',
+      phone: v ? v.phone : '',
+      address: v ? v.address : '',
+      type: v ? v.type : '',
+      registeredAt: v ? v.registeredAt : (e ? e.registeredAt : null),
+      registeredElsewhere: !v && !!e,
+      entered: !!e,
+      entryTime: e ? e.entryTime : null
+    };
+  }).sort((a,b)=> new Date(b.registeredAt||0) - new Date(a.registeredAt||0));
+
+  renderAdmin(visitorsCache);
+}
+
+function renderAdmin(list){
+  const body = document.getElementById('visitorsBody');
+  const empty = document.getElementById('emptyState');
+  body.innerHTML='';
+  if(list.length===0){ empty.style.display='block'; }
+  else{
+    empty.style.display='none';
+    list.forEach(v=>{
+      const tr = document.createElement('tr');
+      const regLabel = v.registeredElsewhere ? '<span style="color:var(--muted);font-size:11px;">مُسجَّل من جهاز آخر</span>' : fmt(v.registeredAt);
+      tr.innerHTML = `
+        <td>${escapeHtml(v.name)}</td>
+        <td>${escapeHtml(v.kunya)}</td>
+        <td>${escapeHtml(v.type)||'زائر'}</td>
+        <td>${escapeHtml(v.email)||'—'}</td>
+        <td>${escapeHtml(v.phone)||'—'}</td>
+        <td>${regLabel}</td>
+        <td><span class="badge ${v.entered?'in':'out'}">${v.entered?'دخل':'لم يدخل'}</span></td>
+        <td>${fmt(v.entryTime)}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  const total = visitorsCache.length;
+  const inCount = visitorsCache.filter(v=>v.entered).length;
+  const today = new Date().toDateString();
+  const todayCount = visitorsCache.filter(v=> new Date(v.registeredAt).toDateString()===today).length;
+  document.getElementById('s_total').textContent = total;
+  document.getElementById('s_in').textContent = inCount;
+  document.getElementById('s_today').textContent = todayCount;
+  document.getElementById('s_rate').textContent = total ? Math.round(inCount/total*100)+'%' : '0%';
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+document.getElementById('searchBox').addEventListener('input', (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  if(!q){ renderAdmin(visitorsCache); return; }
+  renderAdmin(visitorsCache.filter(v=>
+    (v.name+v.kunya+v.email+v.phone+(v.type||'')).toLowerCase().includes(q)
+  ));
+});
+
+document.getElementById('refreshBtn').addEventListener('click', loadAdmin);
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [['الاسم','الكنية','النوع','البريد الإلكتروني','الهاتف','العنوان','وقت التسجيل','الحالة','وقت الدخول']];
+  visitorsCache.forEach(v=>{
+    rows.push([v.name,v.kunya,v.type||'زائر',v.email,v.phone,v.address,fmt(v.registeredAt),v.entered?'دخل':'لم يدخل',fmt(v.entryTime)]);
+  });
+  const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'زوار-المعرض-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+});
+</script>
+</body>
+</html>
