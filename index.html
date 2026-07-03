@@ -177,9 +177,10 @@ function debugLog(msg){
   p.style.display = 'block';
   p.textContent = new Date().toLocaleTimeString() + '  ' + msg + '\n\n' + p.textContent;
 }
-const DEBUG_MODE = (new URLSearchParams(location.search).get('debug') === '1') || localStorage.getItem('iproexpo_debug') === '1';
-if(new URLSearchParams(location.search).get('debug') === '1'){ localStorage.setItem('iproexpo_debug','1'); }
-if(new URLSearchParams(location.search).get('debug') === '0'){ localStorage.removeItem('iproexpo_debug'); }
+const _debugParam = new URLSearchParams(location.search).get('debug');
+if(_debugParam === '1'){ localStorage.setItem('iproexpo_debug','1'); }
+if(_debugParam === '0'){ localStorage.removeItem('iproexpo_debug'); }
+const DEBUG_MODE = (_debugParam === '1') || localStorage.getItem('iproexpo_debug') === '1';
 window.addEventListener('error', (e)=>{
   debugLog('ERROR: ' + (e.message||'unknown') + '\nfile: ' + (e.filename||'?') + ':' + (e.lineno||'?') + ':' + (e.colno||'?') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
 });
@@ -415,7 +416,7 @@ function jsonp(url, params){
     }
     window[cbName] = (data)=>{ cleanup(); resolve(data); };
     script.onerror = ()=>{ cleanup(); reject(new Error('JSONP request failed (network or blocked)')); };
-    timeoutId = setTimeout(()=>{ cleanup(); reject(new Error('JSONP timeout')); }, 12000);
+    timeoutId = setTimeout(()=>{ cleanup(); reject(new Error('JSONP timeout')); }, 20000);
     const qs = new URLSearchParams({...params, callback: cbName}).toString();
     script.src = url + (url.includes('?') ? '&' : '?') + qs;
     document.body.appendChild(script);
