@@ -875,7 +875,7 @@ function renderAdmin(list){
 }
 
 function escapeHtml(s){
-  return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 document.getElementById('searchBox').addEventListener('input', (e)=>{
