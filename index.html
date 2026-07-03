@@ -385,8 +385,10 @@ window.addEventListener('unhandledrejection', (e)=>{
 <script>
 const PREFIX = 'IPROEXPO-';
 const BADGE_TEMPLATES = {
-  'زائر': 'badge-zair.jpg'
-  // أضف هنا لاحقًا: 'منظم': 'badge-monazem.jpg', 'مشارك': 'badge-mosharek.jpg', 'أمن': 'badge-amn.jpg'
+  'زائر': 'badge-zair.jpg',
+  'منظم': 'badge-monazem.jpg',
+  'مشارك': 'badge-mosharek.jpg',
+  'أمن': 'badge-amn.jpg'
 };
 
 const VISITORS_KEY = 'iproexpo_visitors_v1';   // local backup of records registered on THIS device
@@ -470,8 +472,20 @@ async function testConnection(){
 document.addEventListener('DOMContentLoaded', testConnection);
 
 // ---------- navigation ----------
+const ADMIN_PIN = '272026';
+function isAdminUnlocked(){ return sessionStorage.getItem('iproexpo_admin_ok') === '1'; }
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
+    if(btn.dataset.view === 'admin' && !isAdminUnlocked()){
+      const entered = prompt('هذه اللوحة تحتوي بيانات الزوار الخاصة — أدخل كلمة السر:');
+      if(entered === null) return; // cancelled, stay on current tab
+      if(entered.trim() !== ADMIN_PIN){
+        alert('كلمة السر غير صحيحة.');
+        return;
+      }
+      sessionStorage.setItem('iproexpo_admin_ok','1');
+    }
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
@@ -652,13 +666,20 @@ function roundRectPath(ctx,x,y,w,h,r){
 }
 
 // Composites the visitor's QR code onto the official badge template for their category.
-// QR box position is expressed as a fraction of the template's dimensions (resolution-independent).
-const QR_BOX_FRAC = { x:0.3077, y:0.535, w:0.3846, h:0.273 };
+// QR box position is expressed as a fraction of each template's own dimensions (resolution-independent).
+const QR_BOX_FRAC = {
+  'زائر':  { x:0.3077, y:0.535, w:0.3846, h:0.273 },
+  'منظم':  { x:0.28,   y:0.64,  w:0.44,   h:0.15  },
+  'مشارك': { x:0.28,   y:0.64,  w:0.44,   h:0.15  },
+  'أمن':   { x:0.28,   y:0.64,  w:0.44,   h:0.15  }
+};
+const DEFAULT_QR_BOX_FRAC = { x:0.28, y:0.64, w:0.44, h:0.15 };
 
 function renderBadgeCanvas(data, onDone, onError){
   try{
     const templateFile = BADGE_TEMPLATES[data.type];
     if(!templateFile){ onError(new Error('لا يوجد تصميم بطاقة لفئة "'+(data.type||'')+'" بعد')); return; }
+    const box = QR_BOX_FRAC[data.type] || DEFAULT_QR_BOX_FRAC;
     const tpl = new Image();
     tpl.onload = ()=>{
       try{
@@ -668,7 +689,7 @@ function renderBadgeCanvas(data, onDone, onError){
         const ctx = c.getContext('2d');
         ctx.drawImage(tpl, 0, 0, W, H);
 
-        const bx = QR_BOX_FRAC.x*W, by = QR_BOX_FRAC.y*H, bw = QR_BOX_FRAC.w*W, bh = QR_BOX_FRAC.h*H;
+        const bx = box.x*W, by = box.y*H, bw = box.w*W, bh = box.h*H;
         const pad = 0.018*W;
         ctx.fillStyle = '#ffffff';
         roundRectPath(ctx, bx-pad, by-pad, bw+pad*2, bh+pad*2, 0.02*W);
