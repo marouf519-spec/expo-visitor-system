@@ -638,6 +638,7 @@ function showTicket(data){
     document.getElementById('downloadBadgeBtn').style.display = 'block';
     badgeLoading.textContent = 'جارٍ تجهيز البطاقة...';
     renderBadgeCanvas(data, (canvas)=>{
+      debugLog('badge canvas finished: ' + canvas.width + 'x' + canvas.height);
       const url = canvas.toDataURL('image/png');
       badgePreview.src = url;
       badgePreview.style.display = 'block';
@@ -684,6 +685,7 @@ function renderBadgeCanvas(data, onDone, onError){
     tpl.onload = ()=>{
       try{
         const W = tpl.naturalWidth, H = tpl.naturalHeight;
+        debugLog('badge tpl loaded: ' + templateFile + ' naturalSize=' + W + 'x' + H + ' box=' + JSON.stringify(box));
         const c = document.createElement('canvas');
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
