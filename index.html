@@ -669,12 +669,12 @@ function roundRectPath(ctx,x,y,w,h,r){
 // Composites the visitor's QR code onto the official badge template for their category.
 // QR box position is expressed as a fraction of each template's own dimensions (resolution-independent).
 const QR_BOX_FRAC = {
-  'زائر':  { x:0.3077, y:0.535, w:0.3846, h:0.273 },
-  'منظم':  { x:0.28,   y:0.64,  w:0.44,   h:0.15  },
-  'مشارك': { x:0.28,   y:0.64,  w:0.44,   h:0.15  },
-  'أمن':   { x:0.28,   y:0.64,  w:0.44,   h:0.15  }
+  'زائر':  { x:0.28, y:0.80, w:0.44, h:0.165 },
+  'منظم':  { x:0.28, y:0.80, w:0.44, h:0.165 },
+  'مشارك': { x:0.28, y:0.80, w:0.44, h:0.165 },
+  'أمن':   { x:0.28, y:0.80, w:0.44, h:0.165 }
 };
-const DEFAULT_QR_BOX_FRAC = { x:0.28, y:0.64, w:0.44, h:0.15 };
+const DEFAULT_QR_BOX_FRAC = { x:0.28, y:0.80, w:0.44, h:0.165 };
 
 function renderBadgeCanvas(data, onDone, onError){
   try{
