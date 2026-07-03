@@ -697,13 +697,36 @@ function renderBadgeCanvas(data, onDone, onError){
         roundRectPath(ctx, bx-pad, by-pad, bw+pad*2, bh+pad*2, 0.02*W);
         ctx.fill();
 
+        // reserve the bottom slice of the box for the visitor's name
+        const nameH = bh*0.22;
+        const qrH = bh - nameH;
+        const qrSize = Math.min(bw, qrH);
+        const qrX = bx + (bw-qrSize)/2;
+
         const tmp = document.createElement('div');
         if(typeof QRCode !== 'function') throw new Error('QRCode library not loaded');
-        new QRCode(tmp, { text: data.id, width: Math.round(bw), height: Math.round(bh), colorDark:'#0B1F3A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
+        new QRCode(tmp, { text: data.id, width: Math.round(qrSize), height: Math.round(qrSize), colorDark:'#0B1F3A', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
 
         const finish = ()=>{
           const qrEl = tmp.querySelector('canvas') || tmp.querySelector('img');
-          ctx.drawImage(qrEl, bx, by, bw, bh);
+          ctx.drawImage(qrEl, qrX, by, qrSize, qrSize);
+
+          const fullName = (data.name + ' ' + data.kunya).trim();
+          ctx.save();
+          ctx.direction = 'rtl';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0B1F3A';
+          let fontSize = Math.round(nameH*0.42);
+          ctx.font = '700 ' + fontSize + 'px Cairo, Tajawal, sans-serif';
+          // shrink font if the name is too wide for the box
+          while(ctx.measureText(fullName).width > bw*0.94 && fontSize > 8){
+            fontSize -= 1;
+            ctx.font = '700 ' + fontSize + 'px Cairo, Tajawal, sans-serif';
+          }
+          ctx.fillText(fullName, bx+bw/2, by+qrH+nameH/2, bw*0.94);
+          ctx.restore();
+
           onDone(c);
         };
         setTimeout(finish, 60); // qrcodejs needs a tick to render into the DOM
