@@ -339,6 +339,13 @@ window.addEventListener('unhandledrejection', (e)=>{
       <div class="stat"><div class="num" id="s_rate">0%</div><div class="lbl">نسبة الحضور</div></div>
     </div>
 
+    <div class="stats" id="typeStats">
+      <div class="stat"><div class="num" id="s_type_زائر">0</div><div class="lbl">زائر</div></div>
+      <div class="stat"><div class="num" id="s_type_منظم">0</div><div class="lbl">منظم</div></div>
+      <div class="stat"><div class="num" id="s_type_مشارك">0</div><div class="lbl">مشارك</div></div>
+      <div class="stat"><div class="num" id="s_type_أمن">0</div><div class="lbl">أمن</div></div>
+    </div>
+
     <div class="card">
       <h2>قائمة الزوار</h2>
       <p class="subtitle">بحث، متابعة الدخول، وتصدير البيانات.</p>
@@ -410,7 +417,7 @@ async function sheetPost(payload){
     return jsonp(SHEET_URL, { action:'register', ...payload.visitor });
   }
   if(payload.action === 'checkin'){
-    return jsonp(SHEET_URL, { action:'checkin', id: payload.id });
+    return jsonp(SHEET_URL, { action:'checkin', id: payload.id, oneTime: payload.oneTime ? '1' : '0' });
   }
   throw new Error('unknown action');
 }
@@ -725,7 +732,7 @@ async function handleScan(raw){
     subEl.textContent='الرمز يجب أن يتكوّن من ٤ أرقام';
   } else if(sheetsOnline){
     try{
-      const resp = await sheetPost({ action:'checkin', id });
+      const resp = await sheetPost({ action:'checkin', id, oneTime });
       if(resp && resp.ok){
         const entries = readMap(ENTRIES_KEY);
         entries[id] = { name: resp.visitor.name, kunya: resp.visitor.kunya, registeredAt: resp.visitor.registeredAt, entryTime: resp.entryTime };
@@ -855,6 +862,16 @@ function renderAdmin(list){
   document.getElementById('s_in').textContent = inCount;
   document.getElementById('s_today').textContent = todayCount;
   document.getElementById('s_rate').textContent = total ? Math.round(inCount/total*100)+'%' : '0%';
+
+  const typeCounts = { 'زائر':0, 'منظم':0, 'مشارك':0, 'أمن':0 };
+  visitorsCache.forEach(v=>{
+    const t = typeCounts.hasOwnProperty(v.type) ? v.type : 'زائر';
+    typeCounts[t]++;
+  });
+  Object.keys(typeCounts).forEach(t=>{
+    const el = document.getElementById('s_type_'+t);
+    if(el) el.textContent = typeCounts[t];
+  });
 }
 
 function escapeHtml(s){
