@@ -71,6 +71,10 @@
   }
   input:focus,textarea:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,162,39,0.15);}
 
+  .phone-row{display:flex;gap:8px;}
+  .phone-row select{flex:0 0 132px;}
+  .phone-row input{flex:1;}
+
   .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:8px;
     background:var(--navy);color:#fff;border:none;padding:12px 20px;border-radius:9px;
@@ -216,12 +220,60 @@ window.addEventListener('unhandledrejection', (e)=>{
           <label>الكنية / اسم العائلة *</label>
           <input type="text" id="f_kunya" required>
 
+          <label>الجنسية *</label>
+          <select id="f_nationality" required>
+            <option value="" selected disabled>اختر الجنسية</option>
+            <option value="سوري">سوري</option>
+            <option value="تركي">تركي</option>
+            <option value="سعودي">سعودي</option>
+            <option value="إماراتي">إماراتي</option>
+            <option value="مصري">مصري</option>
+            <option value="أردني">أردني</option>
+            <option value="لبناني">لبناني</option>
+            <option value="عراقي">عراقي</option>
+            <option value="كويتي">كويتي</option>
+            <option value="قطري">قطري</option>
+            <option value="بحريني">بحريني</option>
+            <option value="عُماني">عُماني</option>
+            <option value="ليبي">ليبي</option>
+            <option value="جزائري">جزائري</option>
+            <option value="تونسي">تونسي</option>
+            <option value="مغربي">مغربي</option>
+            <option value="سوداني">سوداني</option>
+            <option value="يمني">يمني</option>
+            <option value="فلسطيني">فلسطيني</option>
+            <option value="أخرى">أخرى</option>
+          </select>
+
           <label>البريد الإلكتروني *</label>
           <input type="email" id="f_email" required>
           <div class="field-err" id="err_email">صيغة البريد الإلكتروني غير صحيحة</div>
 
           <label>رقم الهاتف *</label>
-          <input type="tel" id="f_phone" required placeholder="+90 5xx xxx xx xx">
+          <div class="phone-row">
+            <select id="f_countryCode" required>
+              <option value="+90" selected>🇹🇷 +90</option>
+              <option value="+963">🇸🇾 +963</option>
+              <option value="+966">🇸🇦 +966</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+20">🇪🇬 +20</option>
+              <option value="+962">🇯🇴 +962</option>
+              <option value="+961">🇱🇧 +961</option>
+              <option value="+964">🇮🇶 +964</option>
+              <option value="+965">🇰🇼 +965</option>
+              <option value="+974">🇶🇦 +974</option>
+              <option value="+973">🇧🇭 +973</option>
+              <option value="+968">🇴🇲 +968</option>
+              <option value="+218">🇱🇾 +218</option>
+              <option value="+213">🇩🇿 +213</option>
+              <option value="+216">🇹🇳 +216</option>
+              <option value="+212">🇲🇦 +212</option>
+              <option value="+249">🇸🇩 +249</option>
+              <option value="+967">🇾🇪 +967</option>
+              <option value="+970">🇵🇸 +970</option>
+            </select>
+            <input type="tel" id="f_phone" required placeholder="5xx xxx xx xx">
+          </div>
 
           <label>العنوان *</label>
           <textarea id="f_address" rows="2" required></textarea>
@@ -249,6 +301,7 @@ window.addEventListener('unhandledrejection', (e)=>{
               <h3 id="t_name">—</h3>
               <div class="vid" id="t_id">—</div>
               <div class="meta">
+                <div id="t_nationality"></div>
                 <div id="t_email"></div>
                 <div id="t_phone"></div>
               </div>
@@ -369,7 +422,7 @@ window.addEventListener('unhandledrejection', (e)=>{
         <table>
           <thead>
             <tr>
-              <th>الاسم</th><th>الكنية</th><th>النوع</th><th>البريد</th><th>الهاتف</th>
+              <th>الاسم</th><th>الكنية</th><th>الجنسية</th><th>النوع</th><th>البريد</th><th>الهاتف</th>
               <th>وقت التسجيل</th><th>الحالة</th><th>وقت الدخول</th>
             </tr>
           </thead>
@@ -563,12 +616,15 @@ regForm.addEventListener('submit', async (e)=>{
 });
 
 function buildVisitorData(id){
+  const countryCode = document.getElementById('f_countryCode').value;
+  const phoneLocal = document.getElementById('f_phone').value.trim();
   return {
     id,
     name: document.getElementById('f_name').value.trim(),
     kunya: document.getElementById('f_kunya').value.trim(),
+    nationality: document.getElementById('f_nationality').value,
     email: document.getElementById('f_email').value.trim(),
-    phone: document.getElementById('f_phone').value.trim(),
+    phone: (countryCode + ' ' + phoneLocal).trim(),
     address: document.getElementById('f_address').value.trim(),
     type: document.getElementById('f_type').value,
     registeredAt: new Date().toISOString()
@@ -579,6 +635,7 @@ function showTicket(data){
   document.getElementById('ticketSubtitle').style.display='none';
   document.getElementById('t_name').textContent = data.name + ' ' + data.kunya;
   document.getElementById('t_id').textContent = data.id;
+  document.getElementById('t_nationality').textContent = data.nationality || '';
   document.getElementById('t_email').textContent = data.email;
   document.getElementById('t_phone').textContent = data.phone;
 
@@ -928,7 +985,7 @@ let visitorsCache=[];
 
 async function loadAdmin(){
   const body = document.getElementById('visitorsBody');
-  body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;"><span class="spinner" style="border-color:rgba(11,31,58,.2);border-top-color:var(--navy);"></span></td></tr>';
+  body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;"><span class="spinner" style="border-color:rgba(11,31,58,.2);border-top-color:var(--navy);"></span></td></tr>';
 
   let visitors = {}, entries = {};
 
@@ -956,6 +1013,7 @@ async function loadAdmin(){
       id,
       name: v ? v.name : (e ? e.name : '—'),
       kunya: v ? v.kunya : (e ? e.kunya : ''),
+      nationality: v ? v.nationality : '',
       email: v ? v.email : '',
       phone: v ? v.phone : '',
       address: v ? v.address : '',
@@ -983,6 +1041,7 @@ function renderAdmin(list){
       tr.innerHTML = `
         <td>${escapeHtml(v.name)}</td>
         <td>${escapeHtml(v.kunya)}</td>
+        <td>${escapeHtml(v.nationality)||'—'}</td>
         <td>${escapeHtml(v.type)||'زائر'}</td>
         <td>${escapeHtml(v.email)||'—'}</td>
         <td>${escapeHtml(v.phone)||'—'}</td>
@@ -1021,16 +1080,16 @@ document.getElementById('searchBox').addEventListener('input', (e)=>{
   const q = e.target.value.trim().toLowerCase();
   if(!q){ renderAdmin(visitorsCache); return; }
   renderAdmin(visitorsCache.filter(v=>
-    (v.name+v.kunya+v.email+v.phone+(v.type||'')).toLowerCase().includes(q)
+    (v.name+v.kunya+(v.nationality||'')+v.email+v.phone+(v.type||'')).toLowerCase().includes(q)
   ));
 });
 
 document.getElementById('refreshBtn').addEventListener('click', loadAdmin);
 
 document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const rows = [['الاسم','الكنية','النوع','البريد الإلكتروني','الهاتف','العنوان','وقت التسجيل','الحالة','وقت الدخول']];
+  const rows = [['الاسم','الكنية','الجنسية','النوع','البريد الإلكتروني','الهاتف','العنوان','وقت التسجيل','الحالة','وقت الدخول']];
   visitorsCache.forEach(v=>{
-    rows.push([v.name,v.kunya,v.type||'زائر',v.email,v.phone,v.address,fmt(v.registeredAt),v.entered?'دخل':'لم يدخل',fmt(v.entryTime)]);
+    rows.push([v.name,v.kunya,v.nationality||'',v.type||'زائر',v.email,v.phone,v.address,fmt(v.registeredAt),v.entered?'دخل':'لم يدخل',fmt(v.entryTime)]);
   });
   const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
